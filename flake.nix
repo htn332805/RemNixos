@@ -2,11 +2,8 @@
   description = "NixOS configuration with Disko and Impermanence";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    disko = {
-      url = "github:nix-community/disko";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    disko.url = "github:nix-community/disko";
     impermanence.url = "github:nix-community/impermanence";
   };
 
@@ -15,19 +12,42 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
     in {
-      nixosConfigurations.remNixos = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.default = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
           disko.nixosModules.disko
           impermanence.nixosModules.impermanence
           ./configuration.nix
-          ({ config, ... }: {
+          {
             disko.devices = import ./disk-config.nix {
-              inherit (config.nixpkgs) lib;
-              disks = [ "/dev/sda" ]; # Adjust this to your disk
+              inherit (pkgs) lib;
+            };
+            
+            fileSystems."/" = {
+              device = "rpool/local/root";
+              fsType = "zfs";
             };
 
-            fileSystems."/persist".neededForBoot = true;
+            fileSystems."/nix" = {
+              device = "rpool/local/nix";
+              fsType = "zfs";
+            };
+
+            fileSystems."/home" = {
+              device = "rpool/safe/home";
+              fsType = "zfs";
+            };
+
+            fileSystems."/persist" = {
+              device = "rpool/safe/persist";
+              fsType = "zfs";
+              neededForBoot = true;
+            };
+
+            boot.initrd.postDeviceCommands = pkgs.lib.mkAfter ''
+              zfs rollback -r rpool/local/root@blank
+            '';
+
             environment.persistence."/persist" = {
               directories = [
                 "/etc/nixos"
@@ -35,50 +55,19 @@
                 "/var/lib/bluetooth"
                 "/var/lib/nixos"
                 "/var/lib/systemd/coredump"
-                { directory = "/var/lib/colord"; user = "colord"; group = "colord"; mode = "u=rwx,g=rx,o="; }
               ];
               files = [
                 "/etc/machine-id"
-                { file = "/etc/nix/id_rsa"; parentDirectory = { mode = "u=rwx,g=,o="; }; }
+                "/etc/ssh/ssh_host_ed25519_key"
+                "/etc/ssh/ssh_host_ed25519_key.pub"
+                "/etc/ssh/ssh_host_rsa_key"
+                "/etc/ssh/ssh_host_rsa_key.pub"
               ];
             };
-
-            boot.initrd.postDeviceCommands = pkgs.lib.mkBefore ''
-              mkdir -p /mnt
-
-              # Mount the root partition
-              mount -o subvol=root /dev/disk/by-label/nixos /mnt
-
-              # Remove all contents of the root subvolume
-              btrfs subvolume list -o /mnt/root | cut -f9 -d ' ' |
-              while read subvolume; do
-                btrfs subvolume delete "/mnt/$subvolume"
-              done
-              rm -rf /mnt/root/*
-
-              # Create a blank root subvolume
-              btrfs subvolume delete /mnt/root
-              btrfs subvolume create /mnt/root
-
-              # Unmount everything
-              umount /mnt
-            '';
-          })
+          }
         ];
       };
 
-      packages.${system}.default = self.nixosConfigurations.remNixos.config.system.build.toplevel;
-
-      apps.${system}.default = {
-        type = "app";
-        program = "${pkgs.writeShellScriptBin "apply-system" ''
-          set -e
-          echo "Formatting and mounting disks..."
-          ${disko.packages.${system}.default}/bin/disko --mode destroy,format,mount ${./disk-config.nix}
-          echo "Installing NixOS..."
-          nixos-install --flake .#remNixos
-          echo "Done! You can now reboot into your new system."
-        ''}/bin/apply-system";
-      };
+      packages.${system}.default = self.nixosConfigurations.default.config.system.build.diskoScript;
     };
 }
