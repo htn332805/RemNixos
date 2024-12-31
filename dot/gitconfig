@@ -1,0 +1,32 @@
+[core]
+  editor = nvim
+
+[diff]
+  tool = nvim -d
+
+[difftool "vimdiff3"]
+  path = nvim
+
+[merge]
+  tool = nvim
+
+[alias]
+  l = log --graph --pretty=format:\"%C(auto)%h%<(3)%d %s %C(bold blue)(%cr, %an)%Creset\" --abbrev-commit --all
+  sync = "!f() { git fetch; git checkout origin/$1; git branch -f $1; git checkout $1; }; f"
+  squash = "!f() { git merge --squash $1; }; f"
+
+[init]
+  defaultBranch = main
+
+[credential]
+  helper = cache --timeout=86400
+
+[safe]
+  directory = ~/.dots
+	directory = /home/runner/work/.dots/.dots
+
+[filter "lfs"]
+  smudge = git-lfs smudge -- %f
+  process = git-lfs filter-process
+  required = true
+  clean = git-lfs clean -- %f
