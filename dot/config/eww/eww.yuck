@@ -1,5 +1,0 @@
-(include "./poll.yuck")
-(include "./widgets.yuck")
-
-(include "./sidebar.yuck")
-(include "./profile.yuck")
