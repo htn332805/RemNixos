@@ -4,7 +4,7 @@
     disk = {
       vda = {
         type = "disk";
-        device = "/dev/vda";
+        device = "/dev/disk/by-id/wwn-0x5001b44a07045f90";
         content = {
           type = "gpt";
           partitions = {
