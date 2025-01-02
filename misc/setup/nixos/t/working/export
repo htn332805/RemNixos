@@ -1,0 +1,7 @@
+export http_proxy=http://173.36.224.109:80/
+export https_proxy=http://173.36.224.109:80/
+export ftp_proxy=http://173.36.224.109:80/
+export no_proxy=.cisco.com
+export HTTP_PROXY=http://173.36.224.109:80/
+export HTTPS_PROXY=http://173.36.224.109:80/
+export FTP_PROXY=http://173.36.224.109:80/
