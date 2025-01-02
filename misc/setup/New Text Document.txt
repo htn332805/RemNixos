@@ -1,0 +1,3 @@
+https://gist.github.com/lucasvo/35e0745b72dd384dcb9b9ee5bae5fecb
+https://nixos.wiki/wiki/ZFS
+https://github.com/voidzero/nixos-zfs-setup/blob/master/nixos-zfs-setup.sh
